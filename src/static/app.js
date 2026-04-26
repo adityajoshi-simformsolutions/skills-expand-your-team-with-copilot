@@ -896,7 +896,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Use the native Web Share API on supported devices (e.g. mobile)
     if (navigator.share) {
-      navigator.share({ title: activityName, text: shareText, url: shareUrl }).catch(() => {});
+      navigator.share({ title: activityName, text: shareText, url: shareUrl }).catch((err) => {
+        // AbortError means the user cancelled — no action needed
+        if (err.name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      });
       return;
     }
 
@@ -912,25 +917,31 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
     document.body.appendChild(popover);
 
-    // Position the popover near the button
+    // Position the popover near the button, using the rendered popover width to stay on screen
     const rect = anchorButton.getBoundingClientRect();
     const scrollY = window.scrollY || document.documentElement.scrollTop;
     const scrollX = window.scrollX || document.documentElement.scrollLeft;
+    const popoverWidth = popover.offsetWidth;
     popover.style.top = `${rect.bottom + scrollY + 6}px`;
-    popover.style.left = `${Math.min(rect.left + scrollX, window.innerWidth - 200)}px`;
+    popover.style.left = `${Math.min(rect.left + scrollX, window.innerWidth - popoverWidth - 8)}px`;
 
-    // Copy link button
+    // Copy link button — shows a selectable URL field as fallback if clipboard API is unavailable
     popover.querySelector("#share-copy").addEventListener("click", () => {
+      const copyBtn = popover.querySelector("#share-copy");
       navigator.clipboard.writeText(shareUrl).then(() => {
-        const btn = popover.querySelector("#share-copy");
-        btn.textContent = "✅ Copied!";
-        setTimeout(() => { btn.textContent = "📋 Copy Link"; }, 2000);
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => { copyBtn.textContent = "📋 Copy Link"; }, 2000);
       }).catch(() => {
-        prompt("Copy this link:", shareUrl);
+        // Show an inline selectable link instead of a browser prompt
+        copyBtn.outerHTML = `<input class="share-option share-url-field" id="share-url-input" type="text" readonly value="${shareUrl}" />`;
+        const urlInput = popover.querySelector("#share-url-input");
+        urlInput.focus();
+        urlInput.select();
       });
     });
 
-    // Close popover when clicking outside
+    // Defer attaching the outside-click listener so the current click that opened
+    // the popover does not immediately trigger it and close the popover.
     function closePopover(e) {
       if (!popover.contains(e.target) && e.target !== anchorButton) {
         popover.remove();

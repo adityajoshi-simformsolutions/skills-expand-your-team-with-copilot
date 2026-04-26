@@ -542,6 +542,14 @@ footer {
   border-color: var(--primary);
 }
 
+/* Inline URL field shown as clipboard fallback */
+.share-url-field {
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  background-color: var(--background);
+  cursor: text;
+}
+
 /* Activity highlight when opened via shared link */
 @keyframes highlight-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(83, 75, 174, 0.5); }
