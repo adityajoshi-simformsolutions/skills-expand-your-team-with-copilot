@@ -79,6 +79,11 @@ def signup_for_activity(activity_name: str, email: str, teacher_username: Option
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
 
+    # Validate email belongs to the school domain
+    if not email.lower().endswith("@mergington.edu"):
+        raise HTTPException(
+            status_code=400, detail="Student email must end with @mergington.edu")
+
     # Validate student is not already signed up
     if email in activity["participants"]:
         raise HTTPException(

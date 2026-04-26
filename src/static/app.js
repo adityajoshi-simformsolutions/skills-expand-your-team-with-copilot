@@ -853,8 +853,17 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const email = document.getElementById("email").value;
+    const email = document.getElementById("email").value.trim();
     const activity = activityInput.value;
+
+    // Validate that the email belongs to the school domain
+    if (!email.toLowerCase().endsWith("@mergington.edu")) {
+      showMessage(
+        "Please enter a valid school email address ending in @mergington.edu",
+        "error"
+      );
+      return;
+    }
 
     try {
       const response = await fetch(
