@@ -856,6 +856,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = document.getElementById("email").value.trim();
     const activity = activityInput.value;
 
+    // Validate email length (RFC 5321: max 254 chars total, max 64 for local part)
+    const localPart = email.split("@")[0];
+    if (email.length > 254 || localPart.length > 64 || email.length === 0) {
+      showMessage(
+        "Please enter a valid email address (maximum 254 characters, local part maximum 64 characters).",
+        "error"
+      );
+      return;
+    }
+
     // Validate that the email belongs to the school domain
     if (!email.toLowerCase().endsWith("@mergington.edu")) {
       showMessage(

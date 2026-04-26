@@ -76,6 +76,10 @@ def signup_for_activity(activity_name: str, email: str, teacher_username: Option
 
     # Validate email belongs to the school domain
     email = email.strip()
+    local_part = email.split("@")[0]
+    if not email or len(email) > 254 or len(local_part) > 64:
+        raise HTTPException(
+            status_code=400, detail="Email address is too long (max 254 characters, local part max 64 characters)")
     if not email.lower().endswith("@mergington.edu"):
         raise HTTPException(
             status_code=400, detail="Student email must end with @mergington.edu")
