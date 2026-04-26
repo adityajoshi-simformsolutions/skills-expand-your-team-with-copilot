@@ -73,16 +73,17 @@ def signup_for_activity(activity_name: str, email: str, teacher_username: Option
     teacher = teachers_collection.find_one({"_id": teacher_username})
     if not teacher:
         raise HTTPException(status_code=401, detail="Invalid teacher credentials")
-    
+
+    # Validate email belongs to the school domain
+    email = email.strip()
+    if not email.lower().endswith("@mergington.edu"):
+        raise HTTPException(
+            status_code=400, detail="Student email must end with @mergington.edu")
+
     # Get the activity
     activity = activities_collection.find_one({"_id": activity_name})
     if not activity:
         raise HTTPException(status_code=404, detail="Activity not found")
-
-    # Validate email belongs to the school domain
-    if not email.lower().endswith("@mergington.edu"):
-        raise HTTPException(
-            status_code=400, detail="Student email must end with @mergington.edu")
 
     # Validate student is not already signed up
     if email in activity["participants"]:
