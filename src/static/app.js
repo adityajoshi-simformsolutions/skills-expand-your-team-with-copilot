@@ -455,7 +455,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Apply difficulty filter
       if (currentDifficultyFilter === "all") {
-        // "All Levels" shows only activities with no difficulty specified
+        // "All Levels" shows activities with no difficulty specified —
+        // these are general activities suitable for every student
         if (details.difficulty) {
           return;
         }
