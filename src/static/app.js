@@ -486,6 +486,9 @@ document.addEventListener("DOMContentLoaded", () => {
     Object.entries(filteredActivities).forEach(([name, details]) => {
       renderActivityCard(name, details);
     });
+
+    // Highlight activity from URL if present
+    highlightActivityFromUrl();
   }
 
   // Function to render a single activity card
@@ -584,6 +587,9 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         `
         }
+        <button class="share-button" data-activity="${name}" aria-label="Share this activity">
+          📤 Share
+        </button>
       </div>
     `;
 
@@ -602,6 +608,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
     }
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-button");
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openSharePopover(name, shareButton);
+    });
 
     activitiesList.appendChild(activityCard);
   }
@@ -889,6 +902,104 @@ document.addEventListener("DOMContentLoaded", () => {
     setDayFilter,
     setTimeRangeFilter,
   };
+
+  // Build a shareable URL for an activity
+  function getActivityShareUrl(activityName) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "";
+    url.searchParams.set("activity", activityName);
+    return url.toString();
+  }
+
+  // Open share popover for an activity
+  function openSharePopover(activityName, anchorButton) {
+    // Remove any existing popover
+    const existing = document.getElementById("share-popover");
+    if (existing) {
+      existing.remove();
+    }
+
+    const shareUrl = getActivityShareUrl(activityName);
+    const shareText = `Check out "${activityName}" at Mergington High School's extracurricular activities!`;
+
+    // Use the native Web Share API on supported devices (e.g. mobile)
+    if (navigator.share) {
+      navigator.share({ title: activityName, text: shareText, url: shareUrl }).catch((err) => {
+        // AbortError means the user cancelled — no action needed
+        if (err.name !== "AbortError") {
+          console.error("Share failed:", err);
+        }
+      });
+      return;
+    }
+
+    // Fallback: show a small popover with sharing options
+    const popover = document.createElement("div");
+    popover.id = "share-popover";
+    popover.className = "share-popover";
+    popover.innerHTML = `
+      <div class="share-popover-title">Share this activity</div>
+      <button class="share-option" id="share-copy">📋 Copy Link</button>
+      <a class="share-option" id="share-email" href="mailto:?subject=${encodeURIComponent(activityName + " - Mergington High School")}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}" target="_blank">✉️ Email</a>
+      <a class="share-option" id="share-whatsapp" href="https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}" target="_blank">💬 WhatsApp</a>
+    `;
+    document.body.appendChild(popover);
+
+    // Position the popover near the button, using the rendered popover width to stay on screen
+    const rect = anchorButton.getBoundingClientRect();
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+    const scrollX = window.scrollX || document.documentElement.scrollLeft;
+    const popoverWidth = popover.offsetWidth;
+    popover.style.top = `${rect.bottom + scrollY + 6}px`;
+    popover.style.left = `${Math.min(rect.left + scrollX, window.innerWidth - popoverWidth - 8)}px`;
+
+    // Copy link button — shows a selectable URL field as fallback if clipboard API is unavailable
+    popover.querySelector("#share-copy").addEventListener("click", () => {
+      const copyBtn = popover.querySelector("#share-copy");
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        copyBtn.textContent = "✅ Copied!";
+        setTimeout(() => { copyBtn.textContent = "📋 Copy Link"; }, 2000);
+      }).catch(() => {
+        // Show an inline selectable link instead of a browser prompt
+        copyBtn.outerHTML = `<input class="share-option share-url-field" id="share-url-input" type="text" readonly value="${shareUrl}" />`;
+        const urlInput = popover.querySelector("#share-url-input");
+        urlInput.focus();
+        urlInput.select();
+      });
+    });
+
+    // Defer attaching the outside-click listener so the current click that opened
+    // the popover does not immediately trigger it and close the popover.
+    function closePopover(e) {
+      if (!popover.contains(e.target) && e.target !== anchorButton) {
+        popover.remove();
+        document.removeEventListener("click", closePopover);
+      }
+    }
+    setTimeout(() => {
+      document.addEventListener("click", closePopover);
+    }, 0);
+  }
+
+  // Highlight an activity card when the page is loaded with ?activity= in the URL
+  function highlightActivityFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const activityName = params.get("activity");
+    if (!activityName) return;
+
+    // Find the card matching the activity name
+    const cards = activitiesList.querySelectorAll(".activity-card");
+    cards.forEach((card) => {
+      const title = card.querySelector("h4");
+      if (title && title.textContent.trim() === activityName) {
+        card.classList.add("activity-highlight");
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Remove highlight after a few seconds
+        setTimeout(() => card.classList.remove("activity-highlight"), 4000);
+      }
+    });
+  }
 
   // Initialize app
   checkAuthentication();
